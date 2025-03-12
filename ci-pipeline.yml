@@ -1,0 +1,54 @@
+trigger:
+  paths:
+    include:
+      - cars-unlimited/*
+
+pool:
+  name: 'carsunlimitedpool'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+      displayName: 'Install Node.js'
+
+    - script: |
+        cd cars-unlimited
+        npm install
+        npm run build
+        npm test
+      displayName: 'Install dependencies, build, and test'
+
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)/cars-unlimited'
+        Contents: '**/*'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/cars-unlimited'
+      displayName: 'Copy files to artifact staging directory'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/cars-unlimited'
+        ArtifactName: 'cars-unlimited'
+      displayName: 'Publish artifact: cars-unlimited'
+
+- stage: Deploy
+  jobs:
+  - deployment: DeployWeb
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: cars-unlimited
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: 'devserviceconnection'
+              appType: 'webAppLinux'
+              appName: 'carsunlimitedappdev'
+              package: '$(Pipeline.Workspace)/cars-unlimited'

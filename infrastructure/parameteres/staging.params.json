@@ -1,0 +1,30 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "environment": {
+        "value": "staging"
+      },
+      "location": {
+        "value": "northeurope"
+      },
+      "appServicePlanName": {
+        "value": "appserviceplanstaging"
+      },
+      "appServiceName": {
+        "value": "carsunlimitedappstaging"
+      },
+      "sqlServerName": {
+        "value": "sqlserverstaging"
+      },
+      "sqlElasticPoolName": {
+        "value": "sqlpoolstaging"
+      },
+      "vnetName": {
+        "value": "vnetstaging"
+      },
+      "appInsightsName": {
+        "value": "appinsights-staging"
+      }
+    }
+  }

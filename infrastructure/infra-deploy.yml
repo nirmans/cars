@@ -1,0 +1,78 @@
+trigger: none
+
+pool:
+  name: 'carsunlimitedpool'
+
+variables:
+  rgName: 'cars-unlimited'
+  templatefile: './infrastructure/main.bicep'
+  parameter: './infrastructure/parameteres/dev.json'
+
+stages:
+  - stage: Lint
+    jobs:
+      - job: LintBicep
+        displayName: 'Lint Bicep Templates'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'devserviceconnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Linting Bicep template: $(templatefile)"
+                bicep build $(templatefile) --no-restore
+                echo "Linting completed."
+
+  - stage: WhatIf_Dev
+    dependsOn: Lint
+    displayName: 'Preview_Dev'
+    jobs:
+      - job: WhatIf
+        displayName: 'What-If'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'devserviceconnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az deployment group what-if --resource-group $(rgName) --template-file $(templatefile) --parameters $(parameter)
+
+  - stage: Validate
+    dependsOn: WhatIf_Dev
+    jobs:
+      - job: ValidateBicep
+        displayName: 'Validate Bicep Templates'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'devserviceconnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Validating Bicep template: $(templatefile)"
+                az deployment group validate \
+                  --resource-group $(rgName) \
+                  --template-file $(templatefile) \
+                  --parameters $(parameter)
+                echo "Validation completed."
+
+  - stage: Deploy
+    dependsOn: Validate
+    jobs:
+      - job: DeployBicep
+        displayName: 'Deploy Bicep Templates'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'devserviceconnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Deploying Bicep template: $(templatefile)"
+                az deployment group create \
+                  --resource-group $(rgName) \
+                  --template-file $(templatefile) \
+                  --parameters $(parameter)
+                echo "Deployment completed."
